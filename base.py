@@ -167,21 +167,21 @@ class BaseUSBMap:
         if port["type"] is not None:
             port_type = shared.USBPhysicalPortTypes(port["type"]) if self.settings["show_friendly_types"] else shared.USBPhysicalPortTypes(port["type"]).value
         elif port["guessed"] is not None:
-            port_type = (str(shared.USBPhysicalPortTypes(port["guessed"])) if self.settings["show_friendly_types"] else str(shared.USBPhysicalPortTypes(port["guessed"]).value)) + " (guessed)"
+            port_type = (str(shared.USBPhysicalPortTypes(port["guessed"])) if self.settings["show_friendly_types"] else str(shared.USBPhysicalPortTypes(port["guessed"]).value)) + " (猜测值)"
         else:
-            port_type = "Unknown"
+            port_type = "未知"
 
-        return f"{port['name']} | {shared.USBDeviceSpeeds(port['class'])} | " + (str(port_type) if self.settings["show_friendly_types"] else f"Type {port_type}")
+        return f"{port['name']} | {shared.USBDeviceSpeeds(port['class'])} | " + (str(port_type) if self.settings["show_friendly_types"] else f"类型 {port_type}")
 
     def print_controllers(self, controllers, colored=False):
         if not controllers:
-            print("Empty.")
+            print("内容为空。")
             return
         for controller in controllers:
             if colored:
-                print(color(self.controller_to_str(controller) + f" | {len(controller['ports'])} ports"))
+                print(color(self.controller_to_str(controller) + f" | {len(controller['ports'])}个端口"))
             else:
-                print(self.controller_to_str(controller) + f" | {len(controller['ports'])} ports")
+                print(self.controller_to_str(controller) + f" | {len(controller['ports'])}个端口")
             for port in controller["ports"]:
                 if not colored:
                     print("  " + self.port_to_str(port))
@@ -202,27 +202,27 @@ class BaseUSBMap:
 
     def print_devices(self, device, indentation="    "):
         if not device:
-            device = "Enumerating..."
+            device = "枚举中..."
         if isinstance(device, str):
             print(f"{indentation}- {device}")
         elif device.get("error", False):
-            print(f"{indentation}- {device['error'] if isinstance(device['error'], str) else 'Device connected to port errored.'} Please unplug or connect a different device.")
+            print(f"{indentation}- {device['error'] if isinstance(device['error'], str) else '连接到此端口的设备出错。'} 请拔下或连接一个不同的设备。")
         else:
-            print(f"{indentation}- {device['name'].strip()} - operating at {shared.USBDeviceSpeeds(device['speed'])}")
+            print(f"{indentation}- {device['name'].strip()} - 运行速度: {shared.USBDeviceSpeeds(device['speed'])}")
             for i in device["devices"]:
                 self.print_devices(i, indentation + "  ")
 
     def discover_ports(self):
-        self.utils.head("Port Discovery")
+        self.utils.head("端口发现")
         print()
         dont_refresh = False
         if not self.controllers:
-            print("\nGetting controllers...")
+            print("\n正在获取控制器...")
             self.get_controllers()
             dont_refresh = True
         while True:
             # os.system("cls" if os.name == "nt" else "clear")
-            self.utils.head("Port Discovery")
+            self.utils.head("端口发现")
             print()
             if dont_refresh:
                 dont_refresh = False
@@ -232,13 +232,13 @@ class BaseUSBMap:
             self.print_controllers(self.controllers, colored=True)
 
             self.dump_historical()
-            print("\nB.  Back\n")
-            do_quit = self.utils.grab("Waiting 5 seconds: ", timeout=5)
+            print("\nB.  返回\n")
+            do_quit = self.utils.grab("等待5秒后将自动刷新: ", timeout=5)
             if str(do_quit).lower() == "b":
                 break
 
     def print_historical(self):
-        utils.TUIMenu("Print Historical (DEBUG)", "Select an option: ", in_between=lambda: self.print_controllers(self.controllers_historical), loop=True).start()
+        utils.TUIMenu("打印历史记录 (调试)", "请选择一个选项: ", in_between=lambda: self.print_controllers(self.controllers_historical), loop=True).start()
 
     def dump_historical(self):
         if self.controllers_historical:
@@ -263,13 +263,13 @@ class BaseUSBMap:
             "",
             textwrap.dedent(
                 """\
-            The difference between connector types 9 and 10 is if you reverse the plug and the devices are connected to the same ports as before, they have a switch (type 9).
-            If not, and they are connected to different ports, they do not have a switch (type 10)."""
+            接口类型9和10的区别在于：如果您反转插头后，设备仍然连接到和之前相同的端口，那么它就带有切换开关 (类型9)。
+            如果反转后连接到了不同的端口，那么它就没有切换开关 (类型10)。"""
             ),
             "",
-            "For more information and pictures, go to https://github.com/USBToolBox/tool/blob/master/TYPES.md.",
+            "更多信息和图片，请访问 https://github.com/USBToolBox/tool/blob/master/TYPES.md。",
         ]
-        utils.TUIMenu("USB Types", "Select an option: ", in_between=in_between).start()
+        utils.TUIMenu("USB 接口类型", "请选择一个选项: ", in_between=in_between).start()
 
     def get_companion_port(self, port):
         if not port.get("companion_info"):
@@ -286,7 +286,7 @@ class BaseUSBMap:
 
     def select_ports(self):
         if not self.controllers_historical:
-            utils.TUIMenu("Select Ports and Build Kext", "Select an option: ", in_between=["No ports! Use the discovery mode."], loop=True).start()
+            utils.TUIMenu("选择端口并构建Kext", "请选择一个选项: ", in_between=["没有端口信息！请先使用端口发现模式。"], loop=True).start()
             return
 
         selection_index = 1
@@ -307,17 +307,17 @@ class BaseUSBMap:
             for controller in self.controllers_historical:
                 controller["selected_count"] = sum(1 if port["selected"] else 0 for port in controller["ports"])
 
-            utils.header("Select Ports and Build Kext")
+            utils.header("选择端口并构建Kext")
             print()
             for controller in self.controllers_historical:
                 port_count_str = f"{controller['selected_count']}/{len(controller['ports'])}"
                 port_count_str = color(port_count_str).red if controller["selected_count"] > 15 else color(port_count_str).green
-                print(self.controller_to_str(controller) + f" | {port_count_str} ports")
+                print(self.controller_to_str(controller) + f" | {port_count_str} 个端口")
                 for port in controller["ports"]:
                     port_info = f"[{'#' if port['selected'] else ' '}]  {port['selection_index']}.{(len(str(selection_index)) - len(str(port['selection_index'])) + 1) * ' ' }" + self.port_to_str(port)
                     companion = self.get_companion_port(port)
                     if companion:
-                        port_info += f" | Companion to {companion['selection_index']}"
+                        port_info += f" | 伴生端口: {companion['selection_index']}"
                     if port["selected"]:
                         print(color(port_info).green.bold)
                     else:
@@ -331,7 +331,7 @@ class BaseUSBMap:
                         self.print_devices(device, indentation="      " + len(str(selection_index)) * " " * 2)
                 print()
 
-            print(f"Binding companions is currently {color('on').green if self.settings['auto_bind_companions'] else color('off').red}.\n")
+            print(f"伴生端口绑定当前为 {color('开启').green if self.settings['auto_bind_companions'] else color('关闭').red} 状态。\n")
 
             output_kext = None
             if self.settings["use_native"] and self.settings["use_legacy_native"]:
@@ -339,27 +339,27 @@ class BaseUSBMap:
             elif self.settings["use_native"]:
                 output_kext = "USBMap.kext"
             else:
-                output_kext = "UTBMap.kext (requires USBToolBox.kext)"
+                output_kext = "UTBMap.kext (需要 USBToolBox.kext)"
 
             print(
                 textwrap.dedent(
                     f"""\
-                K. Build {output_kext}
-                A. Select All
-                N. Select None
-                P. Enable All Populated Ports
-                D. Disable All Empty Ports
-                T. Show Types
+                K. 构建 {output_kext}
+                A. 全选
+                N. 全部不选
+                P. 启用所有已连接设备的端口
+                D. 禁用所有空端口
+                T. 显示类型说明
 
-                B. Back
+                B. 返回
 
-                - Select ports to toggle with comma-delimited lists (eg. 1,2,3,4,5)
-                - Change types using this formula T:1,2,3,4,5:t where t is the type
-                - Set custom names using this formula C:1:Name - Name = None to clear"""
+                - 使用逗号分隔的列表来切换端口 (例如 1,2,3,4,5)
+                - 使用公式 T:1,2,3,4,5:t 更改类型，其中t为类型编号
+                - 使用公式 C:1:名称 设置自定义名称 - 名称 = None 可清除"""
                 )
             )
 
-            output = input("Select an option: ")
+            output = input("请选择一个选项: ")
             if not output:
                 continue
             elif output.upper() == "B":
@@ -454,13 +454,13 @@ class BaseUSBMap:
     def print_errors(self, errors):
         if not errors:
             return True
-        utils.TUIMenu("Selection Validation", "Select an option: ", in_between=errors, loop=True).start()
+        utils.TUIMenu("选择验证", "请选择一个选项: ", in_between=errors, loop=True).start()
         return False
 
     def validate_selections(self):
         errors = []
         if not any(any(p["selected"] for p in c["ports"]) for c in self.controllers_historical):
-            utils.TUIMenu("Selection Validation", "Select an option: ", in_between=["No ports are selected! Select some ports."], loop=True).start()
+            utils.TUIMenu("选择验证", "请选择一个选项: ", in_between=["未选择任何端口！请选择一些端口。"], loop=True).start()
             return False
 
         for controller in self.controllers_historical:
@@ -468,7 +468,7 @@ class BaseUSBMap:
                 if not port["selected"]:
                     continue
                 if port["type"] is None and port["guessed"] is None:
-                    errors.append(f"Port {port['selection_index']} is missing a connector type!")
+                    errors.append(f"端口 {port['selection_index']} 缺少接口类型！")
 
         return self.print_errors(errors)
 
@@ -512,16 +512,16 @@ class BaseUSBMap:
         response = None
         if empty_controllers:
             empty_menu = utils.TUIMenu(
-                "Selection Validation",
-                "Select an option: ",
-                in_between=["The following controllers have no enabled ports:", ""]
+                "选择验证",
+                "请选择一个选项: ",
+                in_between=["以下控制器没有任何启用的端口:", ""]
                 + [controller["name"] for controller in empty_controllers]
-                + ["Select whether to ignore these controllers and exclude them from the map, or disable all ports on these controllers."],
+                + ["请选择是忽略这些控制器并将其从配置中排除，还是禁用这些控制器上的所有端口。"],
                 add_quit=False,
                 return_number=True,
             )
-            empty_menu.add_menu_option("Ignore", key="I")
-            empty_menu.add_menu_option("Disable", key="D")
+            empty_menu.add_menu_option("忽略", key="I")
+            empty_menu.add_menu_option("禁用", key="D")
             response = empty_menu.start()
 
         model_identifier = None
@@ -532,11 +532,11 @@ class BaseUSBMap:
                 ]["_items"][0]["machine_model"]
             else:
                 model_menu = utils.TUIOnlyPrint(
-                    "Enter Model Identifier",
-                    "Enter the model identifier: ",
+                    "输入机型标识符",
+                    "请输入机型标识符: ",
                     [
-                        "You are seeing this as you have selected to use native classes. Model identifier autodetection is unavailable as you are not on macOS.",
-                        "Please enter the model identifier of the target system below. You can find it in System Information or with 'system_profiler -detailLevel mini SPHardwareDataType'.",
+                        "您已选择使用原生类，因此会看到此提示。由于您不在macOS上，无法自动检测机型标识符。",
+                        "请在下方输入目标系统的机型标识符。您可以在“系统信息”或使用命令 'system_profiler -detailLevel mini SPHardwareDataType' 找到它。",
                     ],
                 ).start()
                 model_identifier = model_menu.strip()
@@ -545,9 +545,9 @@ class BaseUSBMap:
 
         template = plistlib.load((shared.resource_dir / Path("Info.plist")).open("rb"))
 
-        menu = utils.TUIMenu("Building USBMap", "Select an option: ")
+        menu = utils.TUIMenu("正在构建 USBMap", "请选择一个选项: ")
         menu.head()
-        print("Generating Info.plist...")
+        print("正在生成 Info.plist...")
         for controller in self.controllers_historical:
             if not any(i["selected"] for i in controller["ports"]) and ignore:
                 continue
@@ -631,13 +631,13 @@ class BaseUSBMap:
         write_path = shared.current_dir / Path(output_kext)
 
         if write_path.exists():
-            print("Removing existing kext...")
+            print("正在移除已存在的 kext...")
             shutil.rmtree(write_path)
 
-        print("Writing kext and Info.plist...")
+        print("正在写入 kext 和 Info.plist...")
         (write_path / Path("Contents")).mkdir(parents=True)
         plistlib.dump(template, (write_path / Path("Contents/Info.plist")).open("wb"), sort_keys=True)
-        print(f"Done. Saved to {write_path.resolve()}.\n")
+        print(f"完成。已保存至 {write_path.resolve()}.\n")
         menu.print_options()
 
         menu.select()
@@ -649,7 +649,7 @@ class BaseUSBMap:
 
         @functionify
         def color_status(name, variable):
-            return f"{name}: {color('Enabled').green if self.settings[variable] else color('Disabled').red}"
+            return f"{name}: {color('已启用').green if self.settings[variable] else color('已禁用').red}"
 
         @functionify
         def toggle_setting(variable):
@@ -658,16 +658,16 @@ class BaseUSBMap:
         def combination(name, variable):
             return color_status(name, variable), toggle_setting(variable)
 
-        menu = utils.TUIMenu("Change Settings", "Toggle a setting: ", loop=True)
+        menu = utils.TUIMenu("更改设置", "切换一个设置: ", loop=True)
         for i in [
-            ["T", *combination("Show Friendly Types", "show_friendly_types"), ["Show friendly types (ie. 'USB 3 Type A') instead of numbers."]],
-            ["N", *combination("Use Native Classes", "use_native"), ["Use native Apple classes (AppleUSBHostMergeProperties) instead of the USBToolBox kext."]],
-            ["L", *combination("Use Legacy Native Classes (requires Use Native Classes)", "use_legacy_native"), ["Use AppleUSBMergeNub instead of AppleUSBHostMergeProperties, for legacy macOS."]],
-            ["A", *combination("Add Comments to Map", "add_comments_to_map"), ["Add port comments inside the map."]],
+            ["T", *combination("显示友好类型名称", "show_friendly_types"), ["显示友好的类型名称 (例如 'USB 3 Type A') 而不是数字。"]],
+            ["N", *combination("使用原生类", "use_native"), ["使用苹果原生类 (AppleUSBHostMergeProperties) 而不是 USBToolBox kext。"]],
+            ["L", *combination("使用旧版原生类 (需要启用'使用原生类')", "use_legacy_native"), ["为旧版 macOS 使用 AppleUSBMergeNub 而不是 AppleUSBHostMergeProperties。"]],
+            ["A", *combination("在配置中添加注释", "add_comments_to_map"), ["将端口的自定义名称/注释添加到配置中。"]],
             [
                 "C",
-                *combination("Bind Companions", "auto_bind_companions"),
-                ["Tie companion ports together. If one companion is enabled/disable/port type changed, the other companion will also be affected."],
+                *combination("绑定伴生端口", "auto_bind_companions"),
+                ["将伴生端口绑定在一起。如果一个端口被启用/禁用/更改类型，另一个伴生端口也会受同样影响。"],
             ],
         ]:
             menu.add_menu_option(name=i[1], function=i[2], key=i[0], description=i[3] if len(i) == 4 else None)
@@ -678,18 +678,18 @@ class BaseUSBMap:
     def monu(self):
         response = None
         while not (response and response == utils.TUIMenu.EXIT_MENU):
-            in_between = [("Saved Data: {}" + Colors.RESET.value).format(Colors.GREEN.value + "Loaded" if self.json_path.exists() else (Colors.RED.value + "None"))]
+            in_between = [("已保存数据: {}" + Colors.RESET.value).format(Colors.GREEN.value + "已加载" if self.json_path.exists() else (Colors.RED.value + "无"))]
 
-            menu = utils.TUIMenu(f"USBToolBox {shared.VERSION}", "Select an option: ", in_between=in_between, top_level=True)
+            menu = utils.TUIMenu(f"USBToolBox {shared.VERSION}", "请选择一个选项: ", in_between=in_between, top_level=True)
 
             menu_options = [
                 # ["H", "Print Historical", self.print_historical],
-                ["D", "Discover Ports", self.discover_ports],
-                ["S", "Select Ports and Build Kext", self.select_ports],
-                ["C", "Change Settings", self.change_settings],
+                ["D", "发现端口", self.discover_ports],
+                ["S", "选择端口并构建Kext", self.select_ports],
+                ["C", "更改设置", self.change_settings],
             ]
             if self.json_path.exists():
-                menu_options.insert(0, ["P", "Delete Saved USB Data", self.remove_historical])
+                menu_options.insert(0, ["P", "删除已保存的USB数据", self.remove_historical])
             for i in menu_options:
                 menu.add_menu_option(i[1], None, i[2], i[0])
 
